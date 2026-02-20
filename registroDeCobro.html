@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LibroCuentas</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:        #0f0f0d;
+      --surface:   #191917;
+      --panel:     #212120;
+      --border:    #2e2e2b;
+      --muted:     #4a4a45;
+      --text:      #e8e5dc;
+      --sub:       #9c9a8e;
+      --green:     #4caf7d;
+      --green-dim: #2a5c42;
+      --red:       #e05c5c;
+      --red-dim:   #5c2222;
+      --amber:     #d4a94a;
+      --accent:    #c8f560;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--surface);
+      border-bottom: 2px solid var(--border);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+    .logo-main {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.4rem;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+    }
+    .logo-sub {
+      font-size: 0.65rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    /* ── LAYOUT ── */
+    .app {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    /* ── BALANCE CARDS ── */
+    .balance-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .balance-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1.25rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .balance-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+    .balance-card.total::before  { background: var(--accent); }
+    .balance-card.owed::before   { background: var(--red); }
+    .balance-card.paid::before   { background: var(--green); }
+    .balance-card.people::before { background: var(--amber); }
+
+    .card-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+    .card-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .balance-card.total  .card-value { color: var(--accent); }
+    .balance-card.owed   .card-value { color: var(--red); }
+    .balance-card.paid   .card-value { color: var(--green); }
+    .balance-card.people .card-value { color: var(--amber); }
+    .card-note {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+
+    /* ── DEBTORS TABLE ── */
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .debtor-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 0.75rem;
+    }
+    .debtor-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.1s;
+    }
+    .debtor-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .debtor-card.active { border-color: var(--accent); background: #1c1c19; }
+    .debtor-name {
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 0.3rem;
+      color: var(--text);
+    }
+    .debtor-balance {
+      font-size: 1.1rem;
+      font-weight: 500;
+    }
+    .debtor-balance.positive { color: var(--red); }
+    .debtor-balance.zero     { color: var(--green); }
+    .debtor-meta {
+      font-size: 0.65rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+
+    /* ── FORM PANEL ── */
+    .form-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1.5rem;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .field label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+    }
+    .field input,
+    .field select,
+    .field textarea {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.875rem;
+      padding: 0.6rem 0.75rem;
+      outline: none;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus { border-color: var(--accent); }
+    .field textarea { resize: vertical; min-height: 70px; }
+    .field select option { background: var(--panel); }
+
+    .tipo-selector {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .tipo-btn {
+      flex: 1;
+      padding: 0.6rem 0.5rem;
+      background: var(--panel);
+      border: none;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .tipo-btn.active-prestamo {
+      background: var(--red-dim);
+      color: var(--red);
+    }
+    .tipo-btn.active-abono {
+      background: var(--green-dim);
+      color: var(--green);
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      padding: 0.65rem 1.25rem;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn:hover   { opacity: 0.85; }
+    .btn:active  { transform: scale(0.97); }
+    .btn-primary { background: var(--accent); color: #0f0f0d; font-weight: 500; }
+    .btn-ghost   { background: transparent; border: 1px solid var(--border); color: var(--sub); }
+    .btn-danger  { background: var(--red-dim); color: var(--red); border: 1px solid var(--red); }
+    .btn-sm      { padding: 0.4rem 0.75rem; font-size: 0.7rem; }
+
+    .form-footer {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    /* ── FILTERS & SEARCH ── */
+    .filters-bar {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 200px;
+    }
+    .search-wrap input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.875rem;
+      padding: 0.6rem 0.75rem 0.6rem 2.25rem;
+      outline: none;
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+    .search-wrap input:focus { border-color: var(--accent); }
+    .search-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    .filter-group {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .filter-btn {
+      padding: 0.55rem 0.9rem;
+      background: var(--surface);
+      border: none;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: background 0.15s, color 0.15s;
+      border-right: 1px solid var(--border);
+    }
+    .filter-btn:last-child { border-right: none; }
+    .filter-btn.active { background: var(--panel); color: var(--accent); }
+
+    .sort-select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--sub);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      padding: 0.55rem 0.75rem;
+      outline: none;
+      cursor: pointer;
+    }
+    .sort-select:focus { border-color: var(--accent); }
+
+    /* ── RECORDS TABLE ── */
+    .records-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .records-header {
+      display: grid;
+      grid-template-columns: 110px 1fr 2fr 100px 110px 80px;
+      padding: 0.6rem 1rem;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      gap: 0.75rem;
+    }
+    .record-row {
+      display: grid;
+      grid-template-columns: 110px 1fr 2fr 100px 110px 80px;
+      padding: 0.8rem 1rem;
+      border-bottom: 1px solid var(--border);
+      gap: 0.75rem;
+      align-items: center;
+      transition: background 0.1s;
+      animation: rowIn 0.2s ease;
+    }
+    @keyframes rowIn {
+      from { opacity: 0; transform: translateX(-6px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .record-row:last-child { border-bottom: none; }
+    .record-row:hover { background: #1a1a17; }
+    .record-date {
+      font-size: 0.75rem;
+      color: var(--sub);
+    }
+    .record-name {
+      font-size: 0.85rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .record-desc {
+      font-size: 0.78rem;
+      color: var(--sub);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 0.2rem 0.5rem;
+      border-radius: 2px;
+      font-weight: 500;
+    }
+    .badge-prestamo { background: var(--red-dim);   color: var(--red);   }
+    .badge-abono    { background: var(--green-dim);  color: var(--green); }
+    .record-amount {
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-align: right;
+    }
+    .amount-prestamo { color: var(--red); }
+    .amount-abono    { color: var(--green); }
+    .record-actions {
+      display: flex;
+      gap: 0.4rem;
+      justify-content: flex-end;
+    }
+    .btn-icon {
+      width: 28px; height: 28px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem;
+      transition: background 0.1s, color 0.1s;
+    }
+    .btn-icon:hover { background: var(--panel); color: var(--text); }
+    .btn-icon.del:hover { background: var(--red-dim); color: var(--red); border-color: var(--red); }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.3; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      width: 100%;
+      max-width: 460px;
+      padding: 1.75rem;
+      transform: translateY(16px);
+      transition: transform 0.2s;
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+    .modal-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    .modal-body {
+      font-size: 0.85rem;
+      color: var(--sub);
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+    .modal-footer {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+    }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.75rem 1.25rem;
+      font-size: 0.8rem;
+      color: var(--text);
+      z-index: 999;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: transform 0.25s, opacity 0.25s;
+      max-width: 280px;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.success { border-color: var(--green); color: var(--green); }
+    #toast.error   { border-color: var(--red);   color: var(--red);   }
+
+    /* ── PERSON HEADER ── */
+    .person-header {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .person-info .person-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+    .person-info .person-sub {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 0.15rem;
+    }
+    .person-saldo {
+      text-align: right;
+    }
+    .person-saldo .saldo-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--muted);
+    }
+    .person-saldo .saldo-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .saldo-positive { color: var(--red); }
+    .saldo-zero     { color: var(--green); }
+
+    /* ── IMPORT PREVIEW ── */
+    .import-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.72rem;
+    }
+    .import-table th {
+      background: var(--panel);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 0.4rem 0.6rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+    }
+    .import-table td {
+      padding: 0.4rem 0.6rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--sub);
+    }
+    .import-table tr.row-new td   { color: var(--text); }
+    .import-table tr.row-skip td  { color: var(--muted); text-decoration: line-through; opacity: 0.5; }
+    .import-table tr.row-err td   { color: var(--red); }
+    .row-tag {
+      font-size: 0.6rem;
+      padding: 0.1rem 0.35rem;
+      border-radius: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .tag-new  { background: var(--green-dim); color: var(--green); }
+    .tag-skip { background: var(--panel);     color: var(--muted); }
+    .tag-err  { background: var(--red-dim);   color: var(--red);   }
+    .import-summary {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .import-stat {
+      font-size: 0.72rem;
+      padding: 0.3rem 0.65rem;
+      border-radius: 3px;
+    }
+    .import-stat.new  { background: var(--green-dim); color: var(--green); }
+    .import-stat.skip { background: var(--panel);     color: var(--muted); border: 1px solid var(--border); }
+    .import-stat.err  { background: var(--red-dim);   color: var(--red);   }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    @media (max-width: 700px) {
+      header {
+        padding: 0 1rem;
+        height: 56px;
+      }
+      .logo-main { font-size: 1.15rem; }
+      .logo-sub { display: none; }
+      .header-actions { gap: 0.5rem; }
+      .btn-sm { padding: 0.5rem 0.75rem; font-size: 0.68rem; }
+      
+      .app { padding: 1.25rem 1rem; gap: 1.25rem; }
+      .balance-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+      .balance-card { padding: 0.9rem 1rem; }
+      .card-label { font-size: 0.6rem; }
+      .card-value { font-size: 1.4rem; }
+      .card-note { font-size: 0.65rem; }
+      
+      .debtor-cards { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      
+      .filters-bar { flex-direction: column; align-items: stretch; }
+      .search-wrap { min-width: auto; }
+      .filter-group, .sort-select { width: 100%; }
+      
+      .records-header { display: none; }
+      .record-row {
+        grid-template-columns: 1fr auto auto;
+        grid-template-areas:
+          "name    edit   delete"
+          "details amount amount";
+        padding: 0.75rem;
+        gap: 0.5rem;
+      }
+      .record-row .record-date { grid-area: details; font-size: 0.68rem; }
+      .record-row .record-name { grid-area: name; font-size: 0.88rem; font-weight: 600; }
+      .record-row .record-desc { display: none; }
+      .record-row > span:nth-child(4) { 
+        grid-area: details;
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      .record-row .record-amount { 
+        grid-area: amount; 
+        text-align: left;
+        font-size: 1.05rem;
+        margin-top: 0.25rem;
+      }
+      .record-row .record-actions {
+        grid-column: 2 / 4;
+        grid-row: 1;
+        gap: 0.35rem;
+      }
+      
+      .person-header { 
+        flex-direction: column; 
+        align-items: flex-start;
+        gap: 0.75rem;
+      }
+      .person-saldo { text-align: left; }
+      .person-saldo .saldo-value { font-size: 1.75rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-main">LibroCuentas</span>
+    <span class="logo-sub">/ Cobros &amp; Préstamos</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost btn-sm" onclick="triggerImport()">↑ Importar CSV</button>
+    <button class="btn btn-ghost btn-sm" onclick="exportarCSV()">↓ Exportar CSV</button>
+    <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="importarCSV(event)"/>
+  </div>
+</header>
+
+<div class="app">
+
+  <!-- BALANCE GLOBAL -->
+  <div class="balance-grid">
+    <div class="balance-card total">
+      <div class="card-label">Saldo Total Adeudado</div>
+      <div class="card-value" id="totalDeuda">$0</div>
+      <div class="card-note">Suma de todos los deudores</div>
+    </div>
+    <div class="balance-card owed">
+      <div class="card-label">Total Prestado</div>
+      <div class="card-value" id="totalPrestado">$0</div>
+      <div class="card-note">Acumulado de préstamos</div>
+    </div>
+    <div class="balance-card paid">
+      <div class="card-label">Total Cobrado</div>
+      <div class="card-value" id="totalAbonado">$0</div>
+      <div class="card-note">Acumulado de abonos</div>
+    </div>
+    <div class="balance-card people">
+      <div class="card-label">Deudores Activos</div>
+      <div class="card-value" id="totalDeudores">0</div>
+      <div class="card-note">Con saldo pendiente</div>
+    </div>
+  </div>
+
+  <!-- DEUDORES -->
+  <div>
+    <div class="section-title">Deudores</div>
+    <div class="debtor-cards" id="debtorCards">
+      <div class="empty-state" id="emptyDebtors">
+        <div class="empty-icon">📒</div>
+        No hay deudores registrados aún.
+      </div>
+    </div>
+  </div>
+
+  <!-- PERSONA SELECCIONADA -->
+  <div id="personView" style="display:none;">
+    <div class="person-header" id="personHeader"></div>
+  </div>
+
+  <!-- FORMULARIO -->
+  <div class="form-panel">
+    <div class="section-title">Nueva Transacción</div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Fecha</label>
+        <input type="date" id="fFecha"/>
+      </div>
+      <div class="field">
+        <label>Nombre del Deudor</label>
+        <input type="text" id="fNombre" placeholder="Ej: Juan Pérez" list="nombresList"/>
+        <datalist id="nombresList"></datalist>
+      </div>
+      <div class="field">
+        <label>Monto ($)</label>
+        <input type="number" id="fMonto" placeholder="0.00" min="0" step="0.01"/>
+      </div>
+      <div class="field">
+        <label>Tipo de Movimiento</label>
+        <div class="tipo-selector">
+          <button class="tipo-btn active-prestamo" id="btnPrestamo" onclick="setTipo('prestamo')">▲ Préstamo</button>
+          <button class="tipo-btn" id="btnAbono" onclick="setTipo('abono')">▼ Abono</button>
+        </div>
+        <input type="hidden" id="fTipo" value="prestamo"/>
+      </div>
+      <div class="field" style="grid-column: 1 / -1;">
+        <label>Descripción</label>
+        <textarea id="fDesc" placeholder="Motivo, referencia o nota…"></textarea>
+      </div>
+    </div>
+    <div class="form-footer">
+      <button class="btn btn-ghost" onclick="limpiarForm()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarTransaccion()">Registrar Transacción</button>
+    </div>
+  </div>
+
+  <!-- FILTROS Y REGISTROS -->
+  <div>
+    <div class="section-title">Historial de Transacciones</div>
+    <div id="filterNotice" style="display:none;background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:0.7rem 1rem;margin-bottom:1rem;font-size:0.75rem;color:var(--sub);display:flex;align-items:center;justify-content:space-between;">
+      <span>📌 Mostrando solo registros de <strong style="color:var(--text)" id="filterNoticeName"></strong></span>
+      <button onclick="togglePersona(personaFiltro)" class="btn btn-ghost btn-sm" style="padding:0.3rem 0.6rem">Ver todos</button>
+    </div>
+    <div class="filters-bar" style="margin-bottom:1rem;">
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="searchInput" placeholder="Buscar por nombre…" oninput="renderTabla()"/>
+      </div>
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="todos" onclick="setFilter(this)">Todos</button>
+        <button class="filter-btn" data-filter="prestamo" onclick="setFilter(this)">Préstamos</button>
+        <button class="filter-btn" data-filter="abono" onclick="setFilter(this)">Abonos</button>
+      </div>
+      <select class="sort-select" id="sortSelect" onchange="renderTabla()">
+        <option value="desc">Más reciente primero</option>
+        <option value="asc">Más antiguo primero</option>
+      </select>
+    </div>
+
+    <div class="records-wrap">
+      <div class="records-header">
+        <span>Fecha</span>
+        <span>Nombre</span>
+        <span>Descripción</span>
+        <span>Estado</span>
+        <span style="text-align:right">Monto</span>
+        <span style="text-align:right">Acciones</span>
+      </div>
+      <div id="recordsBody"></div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- MODAL RESULTADO IMPORTACIÓN -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-title">Resultado de Importación</div>
+    <div id="importModalBody" class="modal-body"></div>
+    <div id="importPreview" style="margin-bottom:1rem;max-height:220px;overflow-y:auto;"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeImportModal()">Cerrar</button>
+      <button class="btn btn-primary" id="importConfirmBtn" onclick="confirmarImport()" style="display:none">Importar registros</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR REGISTRO -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-title">Editar Transacción</div>
+    <div class="modal-body">
+      <div style="display:grid;gap:1rem;">
+        <div class="field">
+          <label>Fecha</label>
+          <input type="date" id="eFecha"/>
+        </div>
+        <div class="field">
+          <label>Nombre del Deudor</label>
+          <input type="text" id="eNombre" placeholder="Ej: Juan Pérez"/>
+        </div>
+        <div class="field">
+          <label>Monto ($)</label>
+          <input type="number" id="eMonto" placeholder="0.00" min="0" step="0.01"/>
+        </div>
+        <div class="field">
+          <label>Tipo de Movimiento</label>
+          <div class="tipo-selector">
+            <button class="tipo-btn active-prestamo" id="ePrestamoBtn" onclick="setEditTipo('prestamo')">▲ Préstamo</button>
+            <button class="tipo-btn" id="eAbonoBtn" onclick="setEditTipo('abono')">▼ Abono</button>
+          </div>
+          <input type="hidden" id="eTipo" value="prestamo"/>
+        </div>
+        <div class="field">
+          <label>Descripción</label>
+          <textarea id="eDesc" placeholder="Motivo, referencia o nota…" rows="3"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarEdicion()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEdicion()">Guardar Cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMACIÓN BORRAR -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div class="modal-title">¿Eliminar registro?</div>
+    <div class="modal-body" id="deleteModalBody">Esta acción no se puede deshacer.</div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmarBorrar()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════
+   ESTADO Y UTILS
+══════════════════════════════════════════ */
+const KEY = 'librocuentas_v2';
+let registros = [];
+let filterActivo = 'todos';
+let deleteId = null;
+let personaFiltro = null;
+
+function guardar() {
+  localStorage.setItem(KEY, JSON.stringify(registros));
+}
+function cargar() {
+  try { registros = JSON.parse(localStorage.getItem(KEY)) || []; } catch(e) { registros = []; }
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function fmt(n) {
+  return '$' + Number(n).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  const [y, m, dd] = d.split('-');
+  return `${dd}/${m}/${y}`;
+}
+// Normalizar nombres: Primera letra mayúscula, resto minúscula, trim espacios
+function normalizarNombre(nombre) {
+  if (!nombre) return '';
+  return nombre.trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+}
+
+/* ══════════════════════════════════════════
+   TIPO SELECTOR
+══════════════════════════════════════════ */
+function setTipo(t) {
+  document.getElementById('fTipo').value = t;
+  const p = document.getElementById('btnPrestamo');
+  const a = document.getElementById('btnAbono');
+  p.className = 'tipo-btn' + (t==='prestamo' ? ' active-prestamo' : '');
+  a.className = 'tipo-btn' + (t==='abono'    ? ' active-abono'    : '');
+}
+
+/* ══════════════════════════════════════════
+   FORM
+══════════════════════════════════════════ */
+function limpiarForm() {
+  document.getElementById('fFecha').value   = new Date().toISOString().slice(0,10);
+  document.getElementById('fNombre').value  = personaFiltro || '';
+  document.getElementById('fMonto').value   = '';
+  document.getElementById('fDesc').value    = '';
+  setTipo('prestamo');
+}
+
+function guardarTransaccion() {
+  const fecha  = document.getElementById('fFecha').value.trim();
+  const nombreRaw = document.getElementById('fNombre').value.trim();
+  const monto  = parseFloat(document.getElementById('fMonto').value);
+  const tipo   = document.getElementById('fTipo').value;
+  const desc   = document.getElementById('fDesc').value.trim();
+
+  if (!fecha)           return toast('Ingresa una fecha', 'error');
+  if (!nombreRaw)       return toast('Ingresa el nombre del deudor', 'error');
+  if (!monto || monto<=0) return toast('Ingresa un monto válido', 'error');
+
+  const nombre = normalizarNombre(nombreRaw);
+  const r = { id: uid(), fecha, nombre, monto, tipo, desc };
+  registros.push(r);
+  guardar();
+  limpiarForm();
+  render();
+  toast(tipo === 'prestamo' ? `Préstamo de ${fmt(monto)} registrado` : `Abono de ${fmt(monto)} registrado`, 'success');
+}
+
+/* ══════════════════════════════════════════
+   FILTROS
+══════════════════════════════════════════ */
+function setFilter(btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterActivo = btn.dataset.filter;
+  renderTabla();
+}
+
+function getFiltered() {
+  const q    = document.getElementById('searchInput').value.toLowerCase().trim();
+  const sort = document.getElementById('sortSelect').value;
+
+  let list = [...registros];
+
+  if (personaFiltro) {
+    const normalizedFilter = normalizarNombre(personaFiltro);
+    list = list.filter(r => normalizarNombre(r.nombre) === normalizedFilter);
+  }
+  if (q)             list = list.filter(r => r.nombre.toLowerCase().includes(q));
+  if (filterActivo !== 'todos') list = list.filter(r => r.tipo === filterActivo);
+
+  list.sort((a,b) => {
+    const d = new Date(a.fecha) - new Date(b.fecha);
+    return sort === 'asc' ? d : -d;
+  });
+  return list;
+}
+
+/* ══════════════════════════════════════════
+   RENDER TABLA
+══════════════════════════════════════════ */
+function renderTabla() {
+  const body = document.getElementById('recordsBody');
+  const list = getFiltered();
+
+  // Mostrar aviso si hay filtro de persona activo
+  const notice = document.getElementById('filterNotice');
+  if (personaFiltro) {
+    notice.style.display = 'flex';
+    document.getElementById('filterNoticeName').textContent = personaFiltro;
+  } else {
+    notice.style.display = 'none';
+  }
+
+  if (!list.length) {
+    body.innerHTML = `<div class="empty-state"><div class="empty-icon">🗒</div>${personaFiltro ? `No hay registros de ${personaFiltro}` : 'No se encontraron registros'}.</div>`;
+    return;
+  }
+
+  body.innerHTML = list.map(r => `
+    <div class="record-row">
+      <span class="record-date">${fmtDate(r.fecha)}</span>
+      <span class="record-name">${esc(r.nombre)}</span>
+      <span class="record-desc" title="${esc(r.desc)}">${esc(r.desc) || '<em style="opacity:.4">Sin descripción</em>'}</span>
+      <span>
+        <span class="badge badge-${r.tipo}">
+          ${r.tipo === 'prestamo' ? '▲ Préstamo' : '▼ Abono'}
+        </span>
+      </span>
+      <span class="record-amount amount-${r.tipo}">${r.tipo==='prestamo' ? '+' : '–'} ${fmt(r.monto)}</span>
+      <div class="record-actions">
+        <button class="btn-icon" title="Ver/Editar" onclick="abrirEdicion('${r.id}')">✎</button>
+        <button class="btn-icon del" title="Eliminar" onclick="pedirBorrar('${r.id}')">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function esc(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ══════════════════════════════════════════
+   BALANCE Y DEUDORES
+══════════════════════════════════════════ */
+function calcBalance() {
+  let totalPrestado = 0, totalAbonado = 0;
+  registros.forEach(r => {
+    if (r.tipo === 'prestamo') totalPrestado += r.monto;
+    else totalAbonado += r.monto;
+  });
+  const deuda = totalPrestado - totalAbonado;
+  document.getElementById('totalDeuda').textContent    = fmt(deuda < 0 ? 0 : deuda);
+  document.getElementById('totalPrestado').textContent = fmt(totalPrestado);
+  document.getElementById('totalAbonado').textContent  = fmt(totalAbonado);
+}
+
+function getPersonas() {
+  const map = {};
+  registros.forEach(r => {
+    const nombreNorm = normalizarNombre(r.nombre);
+    if (!map[nombreNorm]) map[nombreNorm] = { prestado: 0, abonado: 0, count: 0 };
+    if (r.tipo === 'prestamo') map[nombreNorm].prestado += r.monto;
+    else                       map[nombreNorm].abonado  += r.monto;
+    map[nombreNorm].count++;
+  });
+  return map;
+}
+
+function renderDeudores() {
+  const map = getPersonas();
+  const names = Object.keys(map).filter(n => (map[n].prestado - map[n].abonado) > 0 || map[n].prestado > 0);
+  
+  document.getElementById('totalDeudores').textContent = 
+    Object.values(map).filter(p => p.prestado - p.abonado > 0).length;
+
+  const container = document.getElementById('debtorCards');
+  const empty = document.getElementById('emptyDebtors');
+
+  // Actualizar datalist
+  const dl = document.getElementById('nombresList');
+  dl.innerHTML = Object.keys(map).map(n => `<option value="${esc(n)}">`).join('');
+
+  if (!names.length) {
+    container.innerHTML = `<div class="empty-state" id="emptyDebtors"><div class="empty-icon">📒</div>No hay deudores registrados aún.</div>`;
+    return;
+  }
+
+  container.innerHTML = names.map(n => {
+    const p = map[n];
+    const saldo = p.prestado - p.abonado;
+    const isActive = personaFiltro && normalizarNombre(personaFiltro) === normalizarNombre(n);
+    return `
+      <div class="debtor-card${isActive ? ' active' : ''}" onclick="togglePersona('${esc(n)}')">
+        <div class="debtor-name">${esc(n)}</div>
+        <div class="debtor-balance ${saldo > 0 ? 'positive' : 'zero'}">${fmt(saldo > 0 ? saldo : 0)}</div>
+        <div class="debtor-meta">${p.count} mov · Prestado ${fmt(p.prestado)} · Abonado ${fmt(p.abonado)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function togglePersona(nombre) {
+  const nombreNorm = normalizarNombre(nombre);
+  if (personaFiltro && normalizarNombre(personaFiltro) === nombreNorm) {
+    personaFiltro = null;
+    document.getElementById('personView').style.display = 'none';
+    document.getElementById('fNombre').value = '';
+  } else {
+    personaFiltro = nombreNorm;
+    document.getElementById('fNombre').value = nombreNorm;
+    renderPersonHeader();
+    document.getElementById('personView').style.display = '';
+  }
+  renderDeudores();
+  renderTabla();
+}
+
+function renderPersonHeader() {
+  if (!personaFiltro) return;
+  const map = getPersonas();
+  const p = map[personaFiltro] || { prestado: 0, abonado: 0, count: 0 };
+  const saldo = p.prestado - p.abonado;
+  document.getElementById('personHeader').innerHTML = `
+    <div class="person-info">
+      <div class="person-name">${esc(personaFiltro)}</div>
+      <div class="person-sub">${p.count} transacciones · Mostrando solo registros de esta persona</div>
+    </div>
+    <div class="person-saldo">
+      <div class="saldo-label">Saldo Adeudado</div>
+      <div class="saldo-value ${saldo > 0 ? 'saldo-positive' : 'saldo-zero'}">${fmt(saldo > 0 ? saldo : 0)}</div>
+    </div>
+  `;
+}
+
+/* ══════════════════════════════════════════
+   EDITAR REGISTRO
+══════════════════════════════════════════ */
+let editingId = null;
+
+function abrirEdicion(id) {
+  const r = registros.find(x => x.id === id);
+  if (!r) return;
+  editingId = id;
+
+  document.getElementById('eFecha').value  = r.fecha;
+  document.getElementById('eNombre').value = r.nombre;
+  document.getElementById('eMonto').value  = r.monto;
+  document.getElementById('eDesc').value   = r.desc || '';
+  setEditTipo(r.tipo);
+
+  document.getElementById('editModal').classList.add('open');
+}
+
+function setEditTipo(t) {
+  document.getElementById('eTipo').value = t;
+  const p = document.getElementById('ePrestamoBtn');
+  const a = document.getElementById('eAbonoBtn');
+  p.className = 'tipo-btn' + (t==='prestamo' ? ' active-prestamo' : '');
+  a.className = 'tipo-btn' + (t==='abono'    ? ' active-abono'    : '');
+}
+
+function guardarEdicion() {
+  if (!editingId) return;
+  const r = registros.find(x => x.id === editingId);
+  if (!r) return;
+
+  const fecha  = document.getElementById('eFecha').value.trim();
+  const nombreRaw = document.getElementById('eNombre').value.trim();
+  const monto  = parseFloat(document.getElementById('eMonto').value);
+  const tipo   = document.getElementById('eTipo').value;
+  const desc   = document.getElementById('eDesc').value.trim();
+
+  if (!fecha)           return toast('Ingresa una fecha', 'error');
+  if (!nombreRaw)       return toast('Ingresa el nombre del deudor', 'error');
+  if (!monto || monto<=0) return toast('Ingresa un monto válido', 'error');
+
+  const nombre = normalizarNombre(nombreRaw);
+  r.fecha  = fecha;
+  r.nombre = nombre;
+  r.monto  = monto;
+  r.tipo   = tipo;
+  r.desc   = desc;
+
+  guardar();
+  cerrarEdicion();
+  render();
+  toast('Registro actualizado', 'success');
+}
+
+function cerrarEdicion() {
+  document.getElementById('editModal').classList.remove('open');
+  editingId = null;
+}
+
+/* ══════════════════════════════════════════
+   BORRAR
+══════════════════════════════════════════ */
+function pedirBorrar(id) {
+  const r = registros.find(x => x.id === id);
+  if (!r) return;
+  deleteId = id;
+  document.getElementById('deleteModalBody').innerHTML =
+    `Vas a eliminar el registro de <strong>${esc(r.nombre)}</strong> (${fmtDate(r.fecha)}) — <strong>${fmt(r.monto)}</strong>.<br>Esta acción no se puede deshacer.`;
+  document.getElementById('deleteModal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('deleteModal').classList.remove('open');
+  deleteId = null;
+}
+function confirmarBorrar() {
+  if (!deleteId) return;
+  registros = registros.filter(r => r.id !== deleteId);
+  guardar();
+  closeModal();
+  render();
+  toast('Registro eliminado', 'success');
+}
+
+/* ══════════════════════════════════════════
+   IMPORTAR CSV
+══════════════════════════════════════════ */
+let pendingImport = [];
+
+function triggerImport() {
+  const inp = document.getElementById('csvFileInput');
+  inp.value = '';
+  inp.click();
+}
+
+function importarCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result;
+    procesarCSV(text, file.name);
+  };
+  reader.onerror = () => toast('No se pudo leer el archivo', 'error');
+  reader.readAsText(file, 'UTF-8');
+}
+
+function procesarCSV(text, filename) {
+  // Normalizar saltos de línea y separar filas
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+  if (lines.length < 2) {
+    return mostrarImportError('El archivo está vacío o no tiene datos.');
+  }
+
+  // Parsear cabecera (case-insensitive)
+  const header = parseCSVRow(lines[0]).map(h => h.toLowerCase().trim());
+  const colFecha = encontrarCol(header, ['fecha', 'date']);
+  const colNombre = encontrarCol(header, ['nombre', 'name', 'deudor']);
+  const colDesc = encontrarCol(header, ['descripcion', 'descripción', 'desc', 'description', 'nota']);
+  const colTipo = encontrarCol(header, ['tipo', 'estado', 'type', 'estado']);
+  const colMonto = encontrarCol(header, ['monto', 'amount', 'valor', 'importe']);
+
+  if (colFecha < 0 || colNombre < 0 || colMonto < 0 || colTipo < 0) {
+    return mostrarImportError(
+      `No se encontraron las columnas requeridas.<br>
+      El CSV debe tener: <strong>Fecha, Nombre, Tipo, Monto</strong><br>
+      Cabecera detectada: <em>${header.join(', ')}</em>`
+    );
+  }
+
+  // Construir set de IDs existentes para deduplicar por contenido
+  const existingKeys = new Set(
+    registros.map(r => `${r.fecha}|${normalizarNombre(r.nombre)}|${r.tipo}|${r.monto}`)
+  );
+
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const cols = parseCSVRow(lines[i]);
+
+    const fecha  = (cols[colFecha]  || '').trim();
+    const nombreRaw = (cols[colNombre] || '').trim();
+    const nombre = normalizarNombre(nombreRaw);
+    const desc   = colDesc >= 0 ? (cols[colDesc] || '').trim() : '';
+    const tipoRaw = (cols[colTipo] || '').trim().toLowerCase();
+    const montoRaw = (cols[colMonto] || '').replace(/[$,\s]/g, '');
+
+    // Validar y normalizar
+    let estado = 'err';
+    let errorMsg = '';
+
+    const fechaValida = /^\d{4}-\d{2}-\d{2}$/.test(fecha) ||
+                        /^\d{2}\/\d{2}\/\d{4}$/.test(fecha);
+    const fechaNorm = normalizarFecha(fecha);
+    const monto = parseFloat(montoRaw);
+    const tipo = normalizarTipo(tipoRaw);
+
+    if (!fechaValida || !fechaNorm) errorMsg = 'Fecha inválida';
+    else if (!nombre)               errorMsg = 'Sin nombre';
+    else if (!tipo)                 errorMsg = 'Tipo inválido (debe ser prestamo/abono)';
+    else if (isNaN(monto) || monto <= 0) errorMsg = 'Monto inválido';
+
+    const key = `${fechaNorm}|${nombre}|${tipo}|${monto}`;
+    const isDup = existingKeys.has(key);
+
+    if (errorMsg) {
+      rows.push({ estado: 'err', errorMsg, fecha, nombre, desc, tipo: tipoRaw, monto: montoRaw });
+    } else if (isDup) {
+      rows.push({ estado: 'skip', fecha: fechaNorm, nombre, desc, tipo, monto });
+    } else {
+      rows.push({ estado: 'new', fecha: fechaNorm, nombre, desc, tipo, monto });
+    }
+  }
+
+  pendingImport = rows.filter(r => r.estado === 'new');
+  mostrarImportPreview(rows, filename);
+}
+
+function encontrarCol(header, opciones) {
+  for (const op of opciones) {
+    const i = header.indexOf(op);
+    if (i >= 0) return i;
+  }
+  return -1;
+}
+
+function normalizarFecha(f) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(f)) return f;
+  // dd/mm/yyyy → yyyy-mm-dd
+  const m = f.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+  return null;
+}
+
+function normalizarTipo(t) {
+  if (['prestamo','préstamo','loan','credito','crédito','prestación'].includes(t)) return 'prestamo';
+  if (['abono','pago','payment','cobro','abono'].includes(t)) return 'abono';
+  return null;
+}
+
+function parseCSVRow(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (ch === ',' && !inQ) {
+      result.push(cur); cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  result.push(cur);
+  return result;
+}
+
+function mostrarImportError(msg) {
+  document.getElementById('importModalBody').innerHTML =
+    `<span style="color:var(--red)">⚠ Error al leer el archivo</span><br><br>${msg}`;
+  document.getElementById('importPreview').innerHTML = '';
+  document.getElementById('importConfirmBtn').style.display = 'none';
+  document.getElementById('importModal').classList.add('open');
+}
+
+function mostrarImportPreview(rows, filename) {
+  const newRows  = rows.filter(r => r.estado === 'new');
+  const skipRows = rows.filter(r => r.estado === 'skip');
+  const errRows  = rows.filter(r => r.estado === 'err');
+
+  document.getElementById('importModalBody').innerHTML = `
+    <div style="margin-bottom:0.5rem;color:var(--sub);font-size:0.78rem;">
+      Archivo: <strong style="color:var(--text)">${esc(filename)}</strong> · ${rows.length} filas procesadas
+    </div>
+    <div class="import-summary">
+      <span class="import-stat new">✓ ${newRows.length} nuevos</span>
+      <span class="import-stat skip">⊘ ${skipRows.length} duplicados (omitidos)</span>
+      ${errRows.length ? `<span class="import-stat err">✕ ${errRows.length} con error</span>` : ''}
+    </div>
+  `;
+
+  const previewRows = rows.slice(0, 80); // máximo 80 en preview
+  document.getElementById('importPreview').innerHTML = `
+    <table class="import-table">
+      <thead>
+        <tr>
+          <th>Estado</th>
+          <th>Fecha</th>
+          <th>Nombre</th>
+          <th>Tipo</th>
+          <th>Monto</th>
+          <th>Descripción</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${previewRows.map(r => `
+          <tr class="row-${r.estado}">
+            <td>
+              <span class="row-tag tag-${r.estado}">
+                ${r.estado === 'new' ? 'Nuevo' : r.estado === 'skip' ? 'Duplicado' : 'Error'}
+              </span>
+              ${r.errorMsg ? `<span style="font-size:0.65rem;color:var(--red);margin-left:4px">${r.errorMsg}</span>` : ''}
+            </td>
+            <td>${esc(r.fecha||'')}</td>
+            <td>${esc(r.nombre||'')}</td>
+            <td>${esc(r.tipo||'')}</td>
+            <td>${r.monto || ''}</td>
+            <td>${esc(r.desc||'')}</td>
+          </tr>
+        `).join('')}
+        ${rows.length > 80 ? `<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:0.5rem">… y ${rows.length - 80} filas más</td></tr>` : ''}
+      </tbody>
+    </table>
+  `;
+
+  document.getElementById('importConfirmBtn').style.display = newRows.length > 0 ? '' : 'none';
+  document.getElementById('importModal').classList.add('open');
+}
+
+function confirmarImport() {
+  if (!pendingImport.length) return;
+  const nuevoIds = new Set();
+  pendingImport.forEach(r => {
+    const entry = {
+      id: uid(),
+      fecha: r.fecha,
+      nombre: r.nombre,
+      desc: r.desc || '',
+      tipo: r.tipo,
+      monto: r.monto
+    };
+    registros.push(entry);
+  });
+  guardar();
+  render();
+  closeImportModal();
+  toast(`${pendingImport.length} registros importados correctamente`, 'success');
+  pendingImport = [];
+}
+
+function closeImportModal() {
+  document.getElementById('importModal').classList.remove('open');
+  pendingImport = [];
+}
+
+/* ══════════════════════════════════════════
+   EXPORTAR CSV
+══════════════════════════════════════════ */
+function exportarCSV() {
+  if (!registros.length) return toast('No hay registros para exportar', 'error');
+  const cols = ['Fecha','Nombre','Descripcion','Tipo','Monto'];
+  const rows = registros.map(r => [
+    r.fecha, `"${r.nombre}"`, `"${(r.desc||'').replace(/"/g,"'")}"`, r.tipo, r.monto
+  ]);
+  const csv = [cols, ...rows].map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob),
+    download: `librocuentas_${new Date().toISOString().slice(0,10)}.csv`
+  });
+  a.click();
+  toast('Archivo CSV descargado', 'success');
+}
+
+/* ══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════ */
+let toastTimer;
+function toast(msg, type='success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 2800);
+}
+
+/* ══════════════════════════════════════════
+   RENDER COMPLETO
+══════════════════════════════════════════ */
+function render() {
+  calcBalance();
+  renderDeudores();
+  if (personaFiltro) renderPersonHeader();
+  renderTabla();
+}
+
+/* ══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════ */
+cargar();
+document.getElementById('fFecha').value = new Date().toISOString().slice(0,10);
+render();
+
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+document.getElementById('importModal').addEventListener('click', function(e) {
+  if (e.target === this) closeImportModal();
+});
+document.getElementById('editModal').addEventListener('click', function(e) {
+  if (e.target === this) cerrarEdicion();
+});
+</script>
+</body>
+</html>
